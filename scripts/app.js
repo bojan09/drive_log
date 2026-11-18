@@ -1,325 +1,4 @@
-<!DOCTYPE html>
-<html lang="mk">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <meta name="theme-color" content="#2374f7" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  <title>Месечен Возачки Дневник</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          fontFamily: {
-            sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
-          },
-          boxShadow: {
-            'glass': '0 20px 50px -12px rgba(15, 39, 77, 0.08), 0 4px 16px -4px rgba(15, 39, 77, 0.04)',
-            'pill': '0 4px 14px rgba(15, 39, 77, 0.06)',
-            'card': '0 8px 24px -6px rgba(15, 39, 77, 0.06)',
-          }
-        }
-      }
-    };
-  </script>
-  <style>
-    body {
-      background: radial-gradient(circle at 12% 15%, #dce9fc 0%, transparent 45%),
-                  radial-gradient(circle at 88% 82%, #dce7fb 0%, transparent 48%),
-                  linear-gradient(135deg, #eaf2fd 0%, #f5f8fe 50%, #e7f0fc 100%);
-      min-height: 100vh;
-      -webkit-tap-highlight-color: transparent;
-    }
-
-    .weekend-pattern {
-      background-color: rgba(241, 245, 249, 0.65);
-      background-image: repeating-linear-gradient(
-        -45deg,
-        transparent,
-        transparent 6px,
-        rgba(203, 213, 225, 0.22) 6px,
-        rgba(203, 213, 225, 0.22) 8px
-      );
-    }
-
-    .holiday-pattern {
-      background: linear-gradient(135deg, rgba(254, 242, 242, 0.85) 0%, rgba(239, 246, 255, 0.85) 100%);
-    }
-
-    ::-webkit-scrollbar {
-      width: 5px;
-      height: 5px;
-    }
-    ::-webkit-scrollbar-track {
-      background: transparent;
-    }
-    ::-webkit-scrollbar-thumb {
-      background: #cbd5e1;
-      border-radius: 9999px;
-    }
-
-    @keyframes popIn {
-      0% { opacity: 0; transform: scale(0.96) translateY(8px); }
-      100% { opacity: 1; transform: scale(1) translateY(0); }
-    }
-    @keyframes fadeSlide {
-      0% { opacity: 0; transform: translateY(4px); }
-      100% { opacity: 1; transform: translateY(0); }
-    }
-    .animate-pop {
-      animation: popIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-    }
-    .animate-grid {
-      animation: fadeSlide 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-    }
-    .calendar-cell {
-      transition: background-color 0.15s ease, transform 0.1s ease;
-    }
-    .calendar-cell:active {
-      transform: scale(0.97);
-    }
-  </style>
-</head>
-<body class="text-slate-800 antialiased selection:bg-blue-100 selection:text-blue-900 p-2 sm:p-4 lg:p-6 flex items-center justify-center">
-
-  <!-- Main Glassmorphic Dashboard Container -->
-  <main class="w-full max-w-5xl bg-white/92 backdrop-blur-xl rounded-2xl sm:rounded-[28px] shadow-glass border border-white/80 p-3 sm:p-5 lg:p-6 transition-all">
-
-    <!-- Top Header Bar -->
-    <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3.5 sm:pb-5 border-b border-slate-100">
-      <!-- Brand / Title Group -->
-      <div class="flex items-center gap-3">
-        <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-[#2374f7] to-[#0b49c4] shadow-lg shadow-blue-500/25 flex items-center justify-center shrink-0 text-white">
-          <svg class="w-5 h-5 sm:w-6 sm:h-6" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.85 7h10.29l1.08 3.11H5.77L6.85 7zM19 17H5v-5h14v5z"/>
-            <circle cx="7.5" cy="14.5" r="1.5"/>
-            <circle cx="16.5" cy="14.5" r="1.5"/>
-          </svg>
-        </div>
-        <div class="min-w-0">
-          <h1 class="text-base sm:text-xl lg:text-2xl font-extrabold tracking-tight text-[#0d1f44] leading-tight truncate">
-            Месечен Возачки Дневник
-          </h1>
-          <p class="text-xs sm:text-sm text-slate-500 font-medium mt-0.5 truncate">
-            Кој возел, кога и колку пати во месецот
-          </p>
-        </div>
-      </div>
-
-      <!-- Month Cycle Controls & Action Buttons -->
-      <div class="flex items-center justify-between sm:justify-end gap-2">
-        <!-- Offline / Local Save Status Badge -->
-        <span id="offline-status-badge" title="Податоците се зачувуваат локално во прелистувачот и работат офлајн"
-          class="hidden lg:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-[11px] font-semibold bg-emerald-50/90 text-emerald-700 border border-emerald-200/80 select-none">
-          <span id="offline-status-dot" class="w-2 h-2 rounded-full bg-emerald-500"></span>
-          <span id="offline-status-text">Локално зачувано</span>
-        </span>
-
-        <!-- Quick Today Button -->
-        <button id="btn-today" type="button"
-          class="px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-full text-xs font-semibold text-blue-700 bg-blue-50/90 hover:bg-blue-100 border border-blue-200/80 transition active:scale-95 cursor-pointer">
-          Денес
-        </button>
-
-        <!-- Month Switcher Pill -->
-        <div class="inline-flex items-center bg-[#f3f6fc] border border-slate-200/80 rounded-full p-0.5 sm:p-1 shadow-pill">
-          <button id="btn-prev-month" type="button" aria-label="Претходен месец"
-            class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white hover:bg-blue-50 text-slate-700 hover:text-blue-600 flex items-center justify-center shadow-xs transition active:scale-90 cursor-pointer">
-            <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
-
-          <div class="px-2 sm:px-3.5 py-1 mx-0.5 rounded-full bg-[#e4ecf9] text-[#0f2554] font-bold text-xs sm:text-sm flex items-center gap-1.5 select-none min-w-[110px] sm:min-w-[145px] justify-center">
-            <svg class="w-3.5 h-3.5 text-[#1e3a8a] shrink-0 hidden sm:inline" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-              <line x1="16" y1="2" x2="16" y2="6"></line>
-              <line x1="8" y1="2" x2="8" y2="6"></line>
-              <line x1="3" y1="10" x2="21" y2="10"></line>
-            </svg>
-            <span id="current-month-label" class="truncate">Ноември 2026</span>
-          </div>
-
-          <button id="btn-next-month" type="button" aria-label="Следен месец"
-            class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white hover:bg-blue-50 text-slate-700 hover:text-blue-600 flex items-center justify-center shadow-xs transition active:scale-90 cursor-pointer">
-            <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
-        </div>
-
-        <!-- Manage Colleagues / Settings Button -->
-        <button id="btn-manage-drivers" type="button" title="Уреди колеги / возачи"
-          class="p-2 sm:px-3 sm:py-2 rounded-full bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-900 border border-slate-200/90 shadow-xs transition active:scale-95 cursor-pointer flex items-center gap-1 text-xs font-semibold">
-          <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
-          <span class="hidden md:inline">Колеги</span>
-        </button>
-      </div>
-    </header>
-
-    <!-- DESKTOP VIEW: Traditional Grid Calendar (hidden on mobile) -->
-    <section class="hidden md:block mt-3.5 rounded-2xl border border-slate-200/80 overflow-hidden bg-white shadow-xs">
-      <div class="grid grid-cols-7 bg-[#e7effb] border-b border-slate-200/80 text-center py-2 text-xs font-bold text-[#2b4474]">
-        <div>Понеделник</div>
-        <div>Вторник</div>
-        <div>Среда</div>
-        <div>Четврток</div>
-        <div>Петок</div>
-        <div class="text-slate-500">Сабота</div>
-        <div class="text-slate-500">Недела</div>
-      </div>
-      <div id="calendar-grid-desktop" class="grid grid-cols-7 divide-x divide-y divide-slate-200/75 bg-white">
-        <!-- Desktop grid populated via JS -->
-      </div>
-    </section>
-
-    <!-- MOBILE VIEW: Google Calendar-inspired Agenda / List View (visible only on mobile) -->
-    <section class="md:hidden mt-3.5">
-      <div class="flex items-center justify-between gap-2 mb-2.5 px-1">
-        <span class="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">Работни денови</span>
-        <span id="mobile-count-badge" class="px-2.5 py-1 rounded-full bg-blue-100/90 text-blue-800 text-[11px] font-bold whitespace-nowrap shrink-0">21 работни денови</span>
-      </div>
-      <div id="calendar-list-mobile" class="space-y-2.5 max-h-[54vh] overflow-y-auto pr-0.5">
-        <!-- Mobile agenda list populated via JS -->
-      </div>
-    </section>
-
-    <!-- Legend & Helper Hint Bar -->
-    <div class="flex flex-wrap items-center justify-between gap-2 mt-3 px-1 text-[11px] text-slate-500">
-      <div class="flex flex-wrap items-center gap-3">
-        <span class="inline-flex items-center gap-1.5">
-          <span class="w-2.5 h-2.5 rounded-xs bg-amber-100 border border-amber-300"></span>
-          <span>US Holiday</span>
-        </span>
-        <span class="inline-flex items-center gap-1.5">
-          <span class="w-2.5 h-2.5 rounded-xs bg-slate-200 border border-slate-300"></span>
-          <span>Викенд</span>
-        </span>
-      </div>
-      <div class="flex items-center gap-3">
-        <span class="text-slate-400 hidden sm:inline">Кликнете ден за избор на возач</span>
-        <button id="btn-clear-month" type="button" class="text-slate-400 hover:text-rose-600 font-medium underline underline-offset-2 transition cursor-pointer">
-          Исчисти месец
-        </button>
-      </div>
-    </div>
-
-    <!-- Bottom Driver Summary Cards -->
-    <section id="summary-cards" class="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3.5 mt-3.5">
-      <!-- Dynamically rendered driver summary cards -->
-    </section>
-
-  </main>
-
-  <!-- Interactive Bottom-Sheet / Popover for Assigning Drivers -->
-  <div id="day-popover-backdrop" class="fixed inset-0 z-50 hidden bg-slate-900/40 backdrop-blur-[2px] flex items-end sm:items-center justify-center p-3 sm:p-4 transition-opacity">
-    <div id="day-popover" class="w-full sm:w-80 max-w-sm bg-white rounded-2xl shadow-2xl border border-slate-200 p-4 animate-pop">
-      <div class="flex items-center justify-between pb-2.5 mb-2.5 border-b border-slate-100">
-        <div>
-          <p id="popover-date-title" class="text-sm font-bold text-slate-900">18 Ноември 2026</p>
-          <p id="popover-day-subtitle" class="text-[11px] font-medium text-slate-500">Среда</p>
-        </div>
-        <button id="btn-close-popover" type="button" class="w-7 h-7 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-700 flex items-center justify-center transition cursor-pointer">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      </div>
-
-      <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-2">Кој возеше на овој ден?</p>
-
-      <div id="popover-driver-list" class="space-y-1.5 max-h-56 overflow-y-auto pr-0.5">
-        <!-- Driver toggle buttons injected here -->
-      </div>
-
-      <div class="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between">
-        <button id="btn-clear-day" type="button" class="text-xs font-medium text-slate-400 hover:text-rose-600 transition cursor-pointer">
-          Исчисти ден
-        </button>
-        <button id="btn-done-popover" type="button" class="px-4 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-xs transition cursor-pointer">
-          Затвори
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Manage Colleagues Modal -->
-  <div id="drivers-modal" class="fixed inset-0 z-50 hidden bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
-    <div class="bg-white rounded-3xl shadow-2xl border border-slate-100 w-full max-w-lg p-4 sm:p-6 animate-pop overflow-hidden">
-      <div class="flex items-start justify-between gap-3 pb-3 border-b border-slate-100">
-        <div>
-          <h2 class="text-base sm:text-lg font-extrabold text-slate-900">Уреди колеги (возачи)</h2>
-          <p class="text-xs text-slate-500 mt-0.5">Додадете или прилагодете ги возачите</p>
-        </div>
-        <button id="btn-close-modal" type="button" class="w-8 h-8 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-700 flex items-center justify-center shrink-0 transition cursor-pointer">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      </div>
-
-      <div id="modal-drivers-list" class="mt-3.5 space-y-2 max-h-56 overflow-y-auto pr-0.5">
-        <!-- Editable driver rows -->
-      </div>
-
-      <!-- Add New Colleague Form -->
-      <form id="form-add-driver" class="mt-3.5 pt-3.5 border-t border-slate-100 flex flex-col sm:flex-row items-center gap-2">
-        <input id="input-new-driver" type="text" maxlength="18" placeholder="Име на нов колега..." required
-          class="w-full sm:flex-1 min-w-0 px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500" />
-        <div class="flex items-center gap-2 w-full sm:w-auto shrink-0">
-          <select id="select-new-color" class="flex-1 sm:flex-none px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold bg-slate-50 text-slate-700 focus:outline-none focus:border-blue-500 cursor-pointer">
-            <option value="blue">Сина</option>
-            <option value="emerald">Зелена</option>
-            <option value="amber">Портокалова</option>
-            <option value="purple">Виолетова</option>
-            <option value="rose">Црвена</option>
-            <option value="cyan">Тиркизна</option>
-          </select>
-          <button type="submit" class="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-xs transition active:scale-95 whitespace-nowrap shrink-0 inline-flex items-center justify-center gap-1 cursor-pointer">
-            <span>+</span>
-            <span>Додај</span>
-          </button>
-        </div>
-      </form>
-
-      <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between gap-3">
-        <button id="btn-reset-defaults" type="button" class="text-xs font-medium text-slate-400 hover:text-slate-700 underline underline-offset-2 transition cursor-pointer">
-          Врати почетни
-        </button>
-        <button id="btn-save-modal" type="button" class="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold shadow-xs transition active:scale-95 whitespace-nowrap cursor-pointer">
-          Зачувај
-        </button>
-      </div>
-
-      <!-- Offline Backup / Export & Import -->
-      <div class="mt-3 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs">
-        <span class="text-[11px] font-medium text-slate-400">Бекап на локални податоци (JSON):</span>
-        <div class="flex items-center gap-2">
-          <button id="btn-export-data" type="button" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold transition cursor-pointer">
-            Преземи бекап
-          </button>
-          <label for="input-import-data" class="px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold transition cursor-pointer">
-            Вчитај бекап
-          </label>
-          <input id="input-import-data" type="file" accept=".json,application/json" class="hidden" />
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Subtle Toast Notification -->
-  <div id="toast" class="fixed bottom-4 right-4 z-50 hidden bg-slate-900/95 text-white text-xs font-semibold px-3.5 py-2 rounded-xl shadow-lg border border-white/10 transition-all">
-  </div>
-
-  <script>
-    (function () {
+(function () {
       'use strict';
 
       const MONTHS_MK = [
@@ -1119,43 +798,36 @@
           }
         });
 
-        // Register inline Service Worker for offline caching when hosted on HTTPS/Netlify
-        if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost')) {
-          try {
-            const swCode = `
-              const CACHE_NAME = 'vozacki-dnevnik-cache-v1';
-              self.addEventListener('install', (event) => {
-                self.skipWaiting();
-              });
-              self.addEventListener('activate', (event) => {
-                event.waitUntil(self.clients.claim());
-              });
-              self.addEventListener('fetch', (event) => {
-                if (event.request.method !== 'GET') return;
-                event.respondWith(
-                  caches.open(CACHE_NAME).then((cache) =>
-                    fetch(event.request)
-                      .then((response) => {
-                        if (response && response.status === 200) {
-                          cache.put(event.request, response.clone());
-                        }
-                        return response;
-                      })
-                      .catch(() => cache.match(event.request))
-                  )
-                );
-              });
-            `;
-            const blob = new Blob([swCode], { type: 'application/javascript' });
-            const swUrl = URL.createObjectURL(blob);
-            navigator.serviceWorker.register(swUrl).catch(() => {});
-          } catch (err) {}
+        // Register the standalone service worker (required for a reliable installable PWA).
+        if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+          navigator.serviceWorker.register('./sw.js').catch((err) => {
+            console.warn('Service worker registration failed:', err);
+          });
         }
       }
+
+      // Native PWA installation prompt (Chromium browsers). iOS users can use Share > Add to Home Screen.
+      let deferredInstallPrompt = null;
+      const installButton = document.getElementById('btn-install');
+      window.addEventListener('beforeinstallprompt', (event) => {
+        event.preventDefault();
+        deferredInstallPrompt = event;
+        if (installButton) installButton.hidden = false;
+      });
+      if (installButton) {
+        installButton.addEventListener('click', async () => {
+          if (!deferredInstallPrompt) return;
+          deferredInstallPrompt.prompt();
+          await deferredInstallPrompt.userChoice;
+          deferredInstallPrompt = null;
+          installButton.hidden = true;
+        });
+      }
+      window.addEventListener('appinstalled', () => {
+        if (installButton) installButton.hidden = true;
+        showToast('Апликацијата е инсталирана');
+      });
 
       initOfflineSupport();
       renderAll();
     })();
-  </script>
-</body>
-</html>

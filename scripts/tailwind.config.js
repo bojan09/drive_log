@@ -1,0 +1,1 @@
+tailwind.config = { theme: { extend: { fontFamily: { sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'] }, boxShadow: { glass: '0 20px 50px -12px rgba(15, 39, 77, 0.08), 0 4px 16px -4px rgba(15, 39, 77, 0.04)', pill: '0 4px 14px rgba(15, 39, 77, 0.06)', card: '0 8px 24px -6px rgba(15, 39, 77, 0.06)' } } } };
