@@ -223,3 +223,66 @@ body {
     scroll-margin-top: 12px;
   }
 }
+
+
+/* Driver settings modal: reliable fixed overlay and scrollable mobile sheet */
+#drivers-modal.modal-open {
+  display: flex !important;
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 10000 !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+#drivers-modal > div {
+  min-height: 0;
+  max-height: min(90dvh, 820px);
+  overflow-y: auto !important;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+@media (max-width: 767px) {
+  #drivers-modal.modal-open {
+    align-items: flex-end !important;
+    justify-content: center !important;
+    padding: 0 !important;
+    background: rgba(15, 23, 42, .52) !important;
+    backdrop-filter: blur(3px);
+  }
+  #drivers-modal > div {
+    width: 100% !important;
+    max-width: none !important;
+    max-height: calc(92dvh - env(safe-area-inset-top)) !important;
+    margin: 0 !important;
+    padding: 20px 18px max(20px, env(safe-area-inset-bottom)) !important;
+    border-radius: 24px 24px 0 0 !important;
+    overflow-y: auto !important;
+    box-shadow: 0 -12px 40px rgba(15, 23, 42, .18) !important;
+  }
+  #drivers-modal #modal-drivers-list {
+    max-height: 30dvh !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+  #drivers-modal input, #drivers-modal select, #drivers-modal button {
+    min-height: 42px;
+  }
+}
+@media (max-width: 767px) {
+  #calendar-list-mobile > div:has(.driven-day-indicator) {
+    min-height: 52px !important;
+    padding-top: 7px !important;
+    padding-bottom: 7px !important;
+    background: #fbfcff !important;
+  }
+  #calendar-list-mobile > div:has(.driven-day-indicator) > div:first-child > div:first-child {
+    width: 37px !important;
+    height: 37px !important;
+  }
+  .driven-day-indicator {
+    color: #315b91;
+    background: #edf4ff;
+    border: 1px solid #dce9fb;
+  }
+}

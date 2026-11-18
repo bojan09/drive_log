@@ -453,16 +453,16 @@
             rightCol.className = 'flex items-center shrink-0';
 
             if (validDayDrivers.length > 0) {
-              const drv = getDriverById(validDayDrivers[0]);
-              if (drv) {
-                const theme = COLOR_THEMES[drv.color] || COLOR_THEMES.blue;
-                rightCol.innerHTML = `
-                  <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold shadow-2xs whitespace-nowrap" style="background-color:${theme.pillBg}; color:${theme.pillText}">
-                    <span class="w-2 h-2 rounded-full shrink-0" style="background-color:${theme.dot}"></span>
-                    <span>${escapeHtml(drv.name)}</span>
-                  </div>
-                `;
-              }
+              const dayThemes = validDayDrivers
+                .map(id => getDriverById(id))
+                .filter(Boolean)
+                .map(drv => COLOR_THEMES[drv.color] || COLOR_THEMES.blue);
+              rightCol.innerHTML = `
+                <span class="driven-day-indicator inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[10px] font-extrabold whitespace-nowrap">
+                  <span class="flex items-center -space-x-1">${dayThemes.map(theme => `<i class="w-2.5 h-2.5 rounded-full border-2 border-white" style="background:${theme.dot}"></i>`).join('')}</span>
+                  <span>${validDayDrivers.length > 1 ? `${validDayDrivers.length} возачи` : 'Возено'}</span>
+                </span>
+              `;
             } else {
               rightCol.innerHTML = `
                 <span class="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 bg-blue-50/90 hover:bg-blue-100 px-3 py-1.5 rounded-full border border-blue-200/70 whitespace-nowrap">
@@ -659,11 +659,13 @@
         closeDayPopover();
         renderModalDriversList();
         driversModal.classList.remove('hidden');
+        driversModal.classList.add('modal-open');
       });
 
       const closeModalAndSave = () => {
         saveDrivers();
         driversModal.classList.add('hidden');
+        driversModal.classList.remove('modal-open');
         renderAll();
       };
 
