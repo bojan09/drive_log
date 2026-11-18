@@ -830,4 +830,17 @@
 
       initOfflineSupport();
       renderAll();
+
+      // On phones, open today's driver picker immediately so the daily action
+      // is available without searching through the month.
+      if (window.matchMedia('(max-width: 767px)').matches) {
+        const today = getRealLocalNow();
+        const todayKey = formatDateKey(today);
+        window.setTimeout(() => {
+          const todayRow = Array.from(document.querySelectorAll('#calendar-list-mobile > div'))
+            .find((row) => row.textContent.includes(String(today.getDate())));
+          if (todayRow) todayRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          openDayPopover(todayKey);
+        }, 220);
+      }
     })();
