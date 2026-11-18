@@ -1,4 +1,4 @@
-const CACHE_NAME = 'vozacki-dnevnik-pwa-v3';
+const CACHE_NAME = 'vozacki-dnevnik-pwa-v9';
 const APP_SHELL = [
   './',
   './index.html',
@@ -7,6 +7,7 @@ const APP_SHELL = [
   './scripts/app.js',
   './manifest.webmanifest',
   './icons/icon-192.png',
+  './icons/icon-192.png?v=8',
   './icons/icon-512.png',
   './icons/icon-maskable-512.png',
   './icons/apple-touch-icon.png'

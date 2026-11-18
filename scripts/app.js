@@ -180,6 +180,9 @@
       let viewYear = realToday.getFullYear();
       let viewMonth = realToday.getMonth();
       let activePopoverDateKey = null;
+      let selectedMobileWeekIndex = null;
+      let previousMonthCounts = {};
+      let hasRenderedSummaryOnce = false;
 
       function renderPopoverDrivers() {
         const list = document.getElementById('popover-driver-list');
@@ -232,7 +235,10 @@
         renderPopoverDrivers();
 
         const backdrop = document.getElementById('day-popover-backdrop');
-        if (backdrop) backdrop.classList.remove('hidden');
+        if (backdrop) {
+          backdrop.classList.remove('hidden');
+          backdrop.classList.add('modal-open');
+        }
       }
 
       function toggleDriverForDay(dateKey, driverId) {
@@ -249,7 +255,10 @@
 
       function closeDayPopover() {
         const backdrop = document.getElementById('day-popover-backdrop');
-        if (backdrop) backdrop.classList.add('hidden');
+        if (backdrop) {
+          backdrop.classList.add('hidden');
+          backdrop.classList.remove('modal-open');
+        }
         activePopoverDateKey = null;
       }
 
@@ -397,13 +406,16 @@
           }
         }
 
-        // 2. RENDER MOBILE AGENDA / LIST VIEW (Working Days Only)
+        // 2. RENDER MOBILE AGENDA / LIST VIEW (Workweek Scrubber + Zero-Scroll Focus)
         const mobileList = document.getElementById('calendar-list-mobile');
+        const mobileWeekStrip = document.getElementById('mobile-week-strip');
         const mobileCountBadge = document.getElementById('mobile-count-badge');
         if (mobileList) {
           mobileList.innerHTML = '';
           const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
-          let workingDaysCount = 0;
+          const workingDays = [];
+          const weeks = [];
+          let currentWeek = [];
 
           for (let d = 1; d <= daysInMonth; d++) {
             const cellDate = new Date(viewYear, viewMonth, d);
@@ -411,18 +423,118 @@
             const isWeekend = (dow === 0 || dow === 6);
             if (isWeekend) continue;
 
-            workingDaysCount++;
             const dateKey = formatDateKey(cellDate);
-            const usHolidayName = holidayMap[dateKey] || null;
-            const isToday = (dateKey === todayKey);
-
             const rawDayDrivers = Array.isArray(commuteLogs[dateKey]) ? commuteLogs[dateKey] : [];
             const validDayDrivers = rawDayDrivers.filter(id => Boolean(getDriverById(id))).slice(0, 1);
 
+            const dayObj = {
+              d,
+              dow,
+              dateKey,
+              usHolidayName: holidayMap[dateKey] || null,
+              isToday: dateKey === todayKey,
+              validDayDrivers
+            };
+
+            workingDays.push(dayObj);
+            if (dow === 1 && currentWeek.length > 0) {
+              weeks.push(currentWeek);
+              currentWeek = [];
+            }
+            currentWeek.push(dayObj);
+          }
+          if (currentWeek.length > 0) weeks.push(currentWeek);
+
+          // Determine which week contains today (or nearest working week in current month)
+          const isViewingCurrentMonth = (viewYear === now.getFullYear() && viewMonth === now.getMonth());
+          let currentMonthWeekIdx = -1;
+          if (isViewingCurrentMonth && weeks.length > 0) {
+            currentMonthWeekIdx = weeks.findIndex(wk => wk.some(day => day.isToday));
+            if (currentMonthWeekIdx === -1) {
+              const todayDateNum = now.getDate();
+              currentMonthWeekIdx = weeks.findIndex(wk => wk[wk.length - 1].d >= todayDateNum);
+              if (currentMonthWeekIdx === -1) currentMonthWeekIdx = weeks.length - 1;
+            }
+          }
+
+          if (selectedMobileWeekIndex === null) {
+            selectedMobileWeekIndex = (currentMonthWeekIdx >= 0) ? currentMonthWeekIdx : 0;
+          } else if (selectedMobileWeekIndex !== 'all' && selectedMobileWeekIndex >= weeks.length) {
+            selectedMobileWeekIndex = Math.max(0, weeks.length - 1);
+          }
+
+          // Render Workweek Scrubber Pills
+          if (mobileWeekStrip) {
+            mobileWeekStrip.innerHTML = '';
+            weeks.forEach((wk, idx) => {
+              const firstDay = wk[0].d;
+              const lastDay = wk[wk.length - 1].d;
+              const label = firstDay === lastDay ? `${firstDay}` : `${firstDay}–${lastDay}`;
+              const isActive = selectedMobileWeekIndex === idx;
+              const isCurrentWk = idx === currentMonthWeekIdx;
+
+              const pill = document.createElement('button');
+              pill.type = 'button';
+              pill.setAttribute('role', 'tab');
+              pill.setAttribute('aria-selected', isActive ? 'true' : 'false');
+              pill.dataset.weekIdx = String(idx);
+              pill.className = `week-pill${isActive ? ' is-active' : ''}${isCurrentWk ? ' is-current-week' : ''}`;
+
+              const dotsHtml = wk.map(day => {
+                if (day.validDayDrivers.length > 0) {
+                  const drv = getDriverById(day.validDayDrivers[0]);
+                  const theme = drv ? (COLOR_THEMES[drv.color] || COLOR_THEMES.blue) : COLOR_THEMES.blue;
+                  return `<span class="week-pill-dot is-logged" style="${isActive ? '' : `background:${theme.dot}`}"></span>`;
+                }
+                return '<span class="week-pill-dot is-empty"></span>';
+              }).join('');
+
+              pill.innerHTML = `
+                <span class="week-pill-label">${label}</span>
+                <span class="week-pill-dots">${dotsHtml}</span>
+              `;
+              pill.addEventListener('click', () => {
+                if (selectedMobileWeekIndex === idx) return;
+                selectedMobileWeekIndex = idx;
+                renderAll();
+              });
+              mobileWeekStrip.appendChild(pill);
+            });
+
+            // 1-tap "Сите" (Full Month) toggle pill
+            const allActive = selectedMobileWeekIndex === 'all';
+            const allPill = document.createElement('button');
+            allPill.type = 'button';
+            allPill.setAttribute('role', 'tab');
+            allPill.setAttribute('aria-selected', allActive ? 'true' : 'false');
+            allPill.dataset.weekIdx = 'all';
+            allPill.className = `week-pill is-all-pill${allActive ? ' is-active' : ''}`;
+            allPill.innerHTML = `<span class="week-pill-label">Сите</span>`;
+            allPill.addEventListener('click', () => {
+              if (selectedMobileWeekIndex === 'all') return;
+              selectedMobileWeekIndex = 'all';
+              renderAll();
+            });
+            mobileWeekStrip.appendChild(allPill);
+          }
+
+          const visibleDays = (selectedMobileWeekIndex === 'all')
+            ? workingDays
+            : (weeks[selectedMobileWeekIndex] || workingDays);
+
+          visibleDays.forEach((dayObj, rowIndex) => {
+            const { d, dow, dateKey, usHolidayName, isToday, validDayDrivers } = dayObj;
+
             const item = document.createElement('div');
-            item.className = `flex items-center justify-between gap-2.5 p-2.5 rounded-2xl border transition-all cursor-pointer active:scale-[0.99] ${
+            item.dataset.date = dateKey;
+            item.setAttribute('role', 'button');
+            item.setAttribute('tabindex', '0');
+            item.style.setProperty('--i', String(Math.min(rowIndex, 10)));
+            item.className = `animate-row flex items-center justify-between gap-2.5 p-2.5 rounded-2xl border transition-all cursor-pointer active:scale-[0.99] ${
+              validDayDrivers.length > 0 ? 'is-driven ' : ''
+            }${
               isToday
-                ? 'bg-blue-50/80 border-blue-300 shadow-xs'
+                ? 'bg-blue-50/90 border-blue-400/80 shadow-xs'
                 : usHolidayName
                 ? 'bg-amber-50/70 border-amber-200/90'
                 : 'bg-white hover:bg-slate-50 border-slate-200/90 shadow-2xs'
@@ -432,7 +544,7 @@
             leftCol.className = 'flex items-center gap-2.5 flex-1 min-w-0';
 
             leftCol.innerHTML = `
-              <div class="w-11 h-11 rounded-xl ${isToday ? 'bg-blue-600 text-white shadow-sm' : 'bg-[#e7effb] text-[#1e3a8a]'} flex flex-col items-center justify-center shrink-0 font-bold select-none">
+              <div class="w-11 h-11 rounded-xl ${isToday ? 'bg-gradient-to-br from-[#3b82f6] to-[#1d4ed8] text-white shadow-sm' : 'bg-[#e7effb] text-[#1e3a8a]'} flex flex-col items-center justify-center shrink-0 font-bold select-none">
                 <span class="text-sm font-extrabold leading-none">${d}</span>
                 <span class="text-[9px] uppercase tracking-wider opacity-85 mt-0.5">${WEEKDAYS_MK[dow].slice(0, 3)}</span>
               </div>
@@ -453,14 +565,19 @@
             rightCol.className = 'flex items-center shrink-0';
 
             if (validDayDrivers.length > 0) {
-              const dayThemes = validDayDrivers
+              const dayDrivers = validDayDrivers
                 .map(id => getDriverById(id))
-                .filter(Boolean)
-                .map(drv => COLOR_THEMES[drv.color] || COLOR_THEMES.blue);
+                .filter(Boolean);
+              const primaryDrv = dayDrivers[0];
+              const primaryTheme = primaryDrv ? (COLOR_THEMES[primaryDrv.color] || COLOR_THEMES.blue) : COLOR_THEMES.blue;
+              const driverLabel = dayDrivers.length > 1
+                ? `${primaryDrv.name} +${dayDrivers.length - 1}`
+                : (primaryDrv ? primaryDrv.name : 'Возено');
               rightCol.innerHTML = `
-                <span class="driven-day-indicator inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[10px] font-extrabold whitespace-nowrap">
-                  <span class="flex items-center -space-x-1">${dayThemes.map(theme => `<i class="w-2.5 h-2.5 rounded-full border-2 border-white" style="background:${theme.dot}"></i>`).join('')}</span>
-                  <span>${validDayDrivers.length > 1 ? `${validDayDrivers.length} возачи` : 'Возено'}</span>
+                <span class="driven-day-indicator inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-bold whitespace-nowrap max-w-[125px]"
+                  style="background:${primaryTheme.pillBg}; color:${primaryTheme.pillText}; border:1px solid ${primaryTheme.dot}26">
+                  <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background:${primaryTheme.dot}"></span>
+                  <span class="truncate">${escapeHtml(driverLabel)}</span>
                 </span>
               `;
             } else {
@@ -478,11 +595,23 @@
               e.stopPropagation();
               openDayPopover(dateKey);
             });
+            item.addEventListener('keydown', (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                openDayPopover(dateKey);
+              }
+            });
 
             mobileList.appendChild(item);
-          }
+          });
 
-          if (mobileCountBadge) mobileCountBadge.textContent = `${workingDaysCount} работни денови`;
+          if (mobileCountBadge) {
+            if (selectedMobileWeekIndex === 'all') {
+              mobileCountBadge.textContent = `${workingDays.length} работни денови`;
+            } else {
+              mobileCountBadge.textContent = `Недела ${selectedMobileWeekIndex + 1} од ${weeks.length}`;
+            }
+          }
         }
 
         renderSummaryCards(monthCounts);
@@ -502,6 +631,8 @@
         drivers.forEach(driver => {
           const theme = COLOR_THEMES[driver.color] || COLOR_THEMES.blue;
           const count = monthCounts[driver.id] || 0;
+          const prevCount = previousMonthCounts[driver.id];
+          const didChange = hasRenderedSummaryOnce && typeof prevCount === 'number' && prevCount !== count;
           const isNextUp = drivers.length > 1 && count === minCount;
 
           const card = document.createElement('div');
@@ -521,7 +652,7 @@
               <div class="min-w-0">
                 <p class="text-[11px] sm:text-xs font-bold text-slate-600 truncate">${escapeHtml(driver.name)}</p>
                 <div class="flex items-baseline gap-1 mt-0.5">
-                  <span class="text-lg sm:text-2xl font-extrabold text-slate-900 leading-none">${count}</span>
+                  <span class="text-lg sm:text-2xl font-extrabold text-slate-900 leading-none ${didChange ? 'count-bump' : ''}">${count}</span>
                   <span class="text-[10px] sm:text-xs font-semibold text-slate-500">${count === 1 ? 'пат' : 'пати'}</span>
                 </div>
               </div>
@@ -535,6 +666,9 @@
 
           container.appendChild(card);
         });
+
+        previousMonthCounts = { ...monthCounts };
+        hasRenderedSummaryOnce = true;
       }
 
       function renderModalDriversList() {
@@ -606,6 +740,7 @@
         closeDayPopover();
         viewMonth--;
         if (viewMonth < 0) { viewMonth = 11; viewYear--; }
+        selectedMobileWeekIndex = null;
         renderAll();
       });
 
@@ -613,6 +748,7 @@
         closeDayPopover();
         viewMonth++;
         if (viewMonth > 11) { viewMonth = 0; viewYear++; }
+        selectedMobileWeekIndex = null;
         renderAll();
       });
 
@@ -621,6 +757,7 @@
         const now = getRealLocalNow();
         viewYear = now.getFullYear();
         viewMonth = now.getMonth();
+        selectedMobileWeekIndex = null;
         renderAll();
       });
 
@@ -636,6 +773,10 @@
       document.getElementById('btn-close-popover').addEventListener('click', closeDayPopover);
       document.getElementById('btn-done-popover').addEventListener('click', closeDayPopover);
       const popoverBackdrop = document.getElementById('day-popover-backdrop');
+      const popoverCard = document.getElementById('day-popover');
+      if (popoverCard) {
+        popoverCard.addEventListener('click', (e) => e.stopPropagation());
+      }
       if (popoverBackdrop) {
         popoverBackdrop.addEventListener('click', (e) => {
           if (e.target === popoverBackdrop) closeDayPopover();
@@ -650,8 +791,11 @@
         renderAll();
       });
 
-      window.addEventListener('resize', () => {
-        if (activePopoverDateKey) closeDayPopover();
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          if (activePopoverDateKey) closeDayPopover();
+          else if (driversModal && driversModal.classList.contains('modal-open')) closeModalAndSave();
+        }
       });
 
       const driversModal = document.getElementById('drivers-modal');
@@ -839,10 +983,11 @@
         const today = getRealLocalNow();
         const todayKey = formatDateKey(today);
         window.setTimeout(() => {
-          const todayRow = Array.from(document.querySelectorAll('#calendar-list-mobile > div'))
-            .find((row) => row.textContent.includes(String(today.getDate())));
-          if (todayRow) todayRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          openDayPopover(todayKey);
+          const todayRow = document.querySelector(`#calendar-list-mobile > [data-date="${todayKey}"]`);
+          if (todayRow) {
+            todayRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            openDayPopover(todayKey);
+          }
         }, 220);
       }
     })();
